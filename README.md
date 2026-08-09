@@ -1,162 +1,54 @@
-# Robust LSP
+# Robust LSP for Rider
 
-This Rider plugin connects the [robust-lsp](https://github.com/Ertanic/robust-lsp)
-language server through [LSP4IJ](https://github.com/redhat-developer/lsp4ij).
+This plugin connects [robust-lsp](https://github.com/Ertanic/robust-lsp) to JetBrains Rider through [LSP4IJ](https://github.com/redhat-developer/lsp4ij).
 
-## Setup
+It currently starts Robust LSP for YAML files and provides the language-server features supported by the upstream server, including completion, diagnostics, inlay hints, and navigation where available.
 
-The plugin downloads the latest `robust-lsp` release automatically on first use
-and stores it in `.robust-lsp` under the user home directory. To use a specific
-executable instead, set `LSP_SERVER_PATH` to its path before starting Rider.
-The server is started automatically when a YAML file is opened.
+## Requirements
 
-[![Twitter Follow](https://img.shields.io/badge/follow-%40JBPlatform-1DA1F2?logo=twitter)](https://twitter.com/JBPlatform)
-[![Developers Forum](https://img.shields.io/badge/JetBrains%20Platform-Join-blue)][jb:forum]
+- JetBrains Rider
+- The YAML plugin
+- LSP4IJ
+- A Robust Toolbox project containing one of these solution layouts:
 
-## Overview
+  - `SpaceStation14.sln` or `SpaceStation14.slnx` at the project root
+  - `RobustToolbox/RobustToolbox.sln` or `RobustToolbox/RobustToolbox.slnx`
 
-This repository implements an IntelliJ Platform plugin.
+The plugin searches upward from the Rider project directory for the nearest matching solution root and sends that directory to the language server as its workspace root.
 
-## Demo Functionality
+## Installation
 
-The sample plugin adds a `My Tool Window` tool window with a simple functionality of shuffling a random number.
+On first use, the plugin downloads the latest platform binary from the Robust LSP GitHub releases and stores it at:
 
-## Plugin structure
-
-A generated project contains the following content structure:
-
-```
-.
-├── .run/                   Predefined Run/Debug Configurations
-├── gradle
-│   ├── wrapper/            Gradle Wrapper
-│   ├── libs.versions.toml  Version catalog
-├── src                     Plugin sources
-│   └── main
-│       ├── kotlin/         Kotlin production sources
-│       └── resources/      Plugin resources
-│           ├── META-INF/   Plugin configuration file and logo
-│           └── messages/   Message bundles
-├── .gitignore              Git ignoring rules
-├── build.gradle.kts        Gradle build configuration
-├── gradle.properties       Gradle configuration properties
-├── gradlew                 *nix Gradle Wrapper script
-├── gradlew.bat             Windows Gradle Wrapper script
-├── README.md               This file
-└── settings.gradle.kts     Gradle project settings
+```text
+%USERPROFILE%\.robust-lsp\robust-lsp.exe
 ```
 
-In addition to the configuration files, the most crucial part is the `src` directory, which contains our implementation
-and the manifest for our plugin – [plugin.xml][file:plugin.xml].
+On non-Windows systems the path is `~/.robust-lsp/robust-lsp`.
 
-> [!NOTE]
-> To use Java in your plugin, create the `/src/main/java` directory.
+To use a specific executable, set `LSP_SERVER_PATH` before starting Rider. On Windows, `.exe` is added automatically when it is omitted.
 
-The plugin logo is placed in `src/main/resources/META-INF/pluginIcon.svg`. See [Plugin Logo][docs:logo] for more
-information and logo requirements.
+## Usage
 
-## Build script
+Open a Robust Toolbox solution in Rider and open a YAML file. The server is started automatically when a mapped YAML file requires it.
 
-The [build.gradle.kts][file:build.gradle.kts] is the core of the project definition. It applies three Gradle plugins:
+The project must be opened at, or below, the directory containing the solution file. If no supported solution is found, the upstream server rejects initialization and LSP4IJ reports `Server not initialized`.
 
-| Plugin                            | Description                                                                      |
-|-----------------------------------|----------------------------------------------------------------------------------|
-| `org.jetbrains.kotlin.jvm`        | Adds Kotlin support                                                              |
-| `org.jetbrains.changelog`         | Simplifies patching the [CHANGELOG.md][file:CHANGELOG.md] file                   |
-| `org.jetbrains.intellij.platform` | The [IntelliJ Platform Gradle Plugin][docs:intellij-platform-gradle-plugin-docs] |
+## Development
 
-The `intellijPlatform` dependencies block selects the IDE to compile against:
+Build and verify the plugin with:
 
-```kotlin
-intellijIdea("2025.3.5")
+```text
+gradlew.bat build
 ```
 
-See [Target Versions][docs:target-version] for more information.
+Run a Rider instance with the plugin using the `runIde` Gradle task or the provided `Run IDE with Plugin` run configuration.
 
-The `intellijPlatform` dependencies block also contains a dependency on the platform testing framework:
+The plugin targets Rider `2025.3.5` and uses LSP4IJ `0.20.1`.
 
-```kotlin
-testFramework(TestFrameworkType.Platform)
+## Project layout
+
+```text
+src/main/kotlin/RobustLanguageServerFactory.kt  LSP4IJ factory, installer, and root handling
+src/main/resources/META-INF/plugin.xml          Plugin metadata and YAML mappings
 ```
-
-See [Testing][docs:testing] for more information
-
-## Plugin configuration file
-
-The plugin configuration file is a [plugin.xml][file:plugin.xml] file located in the `src/main/resources/META-INF`
-directory. It provides general information about the plugin, its dependencies, extensions, and listeners.
-
-You can read more about this file in the [Plugin Configuration File][docs:plugin.xml] section of our documentation.
-
-### Plugin ID and name
-
-Generated plugin ID and name may require adjustment.
-
-These values are generated based on _Group ID_ and _Artifact ID_ provided in the IDE Plugin wizard. It is recommended to
-review `<id>` and `<name>` elements in the plugin.xml file, and adjust them if needed.
-
-Please note that Gradle properties `rootProject.name` and `project.group` don't need to match the `<id>` and `<name>`
-elements. There is no IntelliJ Platform-related reason they should as they serve different functions.
-
-## Predefined Run/Debug configurations
-
-Within the default project structure, there is a `.run` directory provided containing predefined *Run/Debug
-configurations* that expose corresponding Gradle tasks:
-
-| Configuration name  | Description                                                                                                                                                                           |
-|---------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Run IDE with Plugin | Runs [`:runIde`][docs:intellij-platform-gradle-plugin-runIde] IntelliJ Platform Gradle Plugin task. Use the *Debug* icon for plugin debugging.                                        |
-| Run Tests           | Runs [`:check`][gradle:lifecycle-tasks] Gradle task.                                                                                                                                  |
-| Run Verifications   | Runs [`:verifyPlugin`][docs:intellij-platform-gradle-plugin-verifyPlugin] IntelliJ Platform Gradle Plugin task to check the plugin compatibility against the specified IntelliJ IDEs. |
-
-> [!NOTE]
-> You can find the logs from the running task in the `idea.log` tab.
-
-## Publishing the plugin
-
-> [!TIP]
-> Make sure to follow all guidelines listed in [Publishing a Plugin][docs:publishing] to follow all recommended and
-required steps.
-
-Releasing a plugin to [JetBrains Marketplace](https://plugins.jetbrains.com) is a straightforward operation that uses
-the `publishPlugin` Gradle task provided by
-the [intellij-platform-gradle-plugin][docs:intellij-platform-gradle-plugin-docs].
-
-You can also upload the plugin to the [JetBrains Plugin Repository](https://plugins.jetbrains.com/plugin/upload)
-manually via UI.
-
-## Useful links
-
-- [IntelliJ Platform SDK Plugin SDK][docs]
-- [IntelliJ Platform Gradle Plugin Documentation][docs:intellij-platform-gradle-plugin-docs]
-- [IntelliJ Platform Explorer][jb:ipe]
-- [JetBrains Marketplace Quality Guidelines][jb:quality-guidelines]
-- [IntelliJ Platform UI Guidelines][jb:ui-guidelines]
-- [JetBrains Marketplace Paid Plugins][jb:paid-plugins]
-- [IntelliJ SDK Code Samples][gh:code-samples]
-
-[docs]: https://plugins.jetbrains.com/docs/intellij
-[docs:plugin.xml]: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html?from=IJPluginReadmeFile
-[docs:publishing]: https://plugins.jetbrains.com/docs/intellij/publishing-plugin.html?from=IJPluginReadmeFile
-[docs:intellij-platform-gradle-plugin-docs]: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html?from=IJPluginReadmeFile
-[docs:intellij-platform-gradle-plugin-runIde]: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-tasks.html?from=IJPluginReadmeFile#runIde
-[docs:intellij-platform-gradle-plugin-verifyPlugin]: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-tasks.html?from=IJPluginReadmeFile#verifyPlugin
-[docs:logo]: https://plugins.jetbrains.com/docs/intellij/plugin-icon-file.html?from=IJPluginReadmeFile
-[docs:target-version]: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html?from=IJPluginReadmeFile#target-versions
-[docs:testing]: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html?from=IJPluginReadmeFile#testing
-
-[file:build.gradle.kts]: ./build.gradle.kts
-[file:CHANGELOG.md]: ./CHANGELOG.md
-[file:gradle.properties]: ./gradle.properties
-[file:plugin.xml]: ./src/main/resources/META-INF/plugin.xml
-
-[gh:code-samples]: https://github.com/JetBrains/intellij-sdk-code-samples
-
-[gradle:lifecycle-tasks]: https://docs.gradle.org/current/userguide/java_plugin.html#lifecycle_tasks
-
-[jb:github]: https://github.com/JetBrains/.github/blob/main/profile/README.md
-[jb:forum]: https://platform.jetbrains.com/
-[jb:quality-guidelines]: https://plugins.jetbrains.com/docs/marketplace/quality-guidelines.html
-[jb:paid-plugins]: https://plugins.jetbrains.com/docs/marketplace/paid-plugins-marketplace.html
-[jb:ipe]: https://jb.gg/ipe
-[jb:ui-guidelines]: https://jetbrains.github.io/ui
