@@ -12,7 +12,9 @@ dependencies {
 
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
-        rider("2025.3.5")
+        rider("2025.3.5") {
+            useInstaller = false
+        }
         testFramework(TestFrameworkType.Platform)
 
         // Add plugin dependencies for compilation here:
