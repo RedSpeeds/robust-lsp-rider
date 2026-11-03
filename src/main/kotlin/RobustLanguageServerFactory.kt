@@ -163,8 +163,9 @@ private object RobustLanguageServerInstallation {
         }
         val apiResponse = URI.create(RELEASES_API).toURL().openStream().use { it.bufferedReader().readText() }
         val assetPattern = Regex(
-            "\\{[^{}]*\\\"name\\\"\\s*:\\s*\\\"($expected)\\\"[^{}]*" +
-                "\\\"browser_download_url\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"[^{}]*\\}"
+            "\"name\"\\s*:\\s*\"(${Regex.escape(expected)})\".*?" +
+                "\"browser_download_url\"\\s*:\\s*\"([^\"]+)\"",
+            setOf(RegexOption.DOT_MATCHES_ALL)
         )
         val match = assetPattern.find(apiResponse)
             ?: throw IOException("No $expected asset was found in the latest Robust LSP release")
